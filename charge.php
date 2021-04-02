@@ -4,8 +4,7 @@ $loader->load_user ();
 $session->is_logged_in ( "login.php" );
 $page_title = 'تمدید اکانت';
 
-if(isset($_POST['submit']))
-{
+if(isset($_POST['submit'])){
 	$send['action'] = "charge";
 	$send['userid'] = $user['id'];
 	$send['category'] = $_POST['category'];

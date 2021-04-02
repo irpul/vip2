@@ -16,27 +16,22 @@ if ($_GET['plugin'] AND is_installed($_GET['plugin']))
 	}
 	unset($plugin);
 	
-	if(isset($_POST['submit']))
-	{
-		foreach ($pluginData[$_GET['plugin']][field][config] as $field)
-		{
+	if(isset($_POST['submit'])){
+		foreach ($pluginData[$_GET['plugin']][field][config] as $field){
 			$sql = 'SELECT * FROM `plugindata` WHERE `plugindata_uniq` = ? AND `plugindata_field_name` = ?';
 			$data = $db->prepare($sql);
 			$data->execute(array($pluginData[$_GET['plugin']][uniq],$field[name]));
 			$data = $data->fetch();
-			if (isset($data[plugindata_field_value]))
-			{
+			if (isset($data[plugindata_field_value])){
 				$sql = $db->prepare("UPDATE `plugindata` SET `plugindata_field_value` = ? WHERE `plugindata_uniq`= ? AND `plugindata_field_name` = ? LIMIT 1");
 				$s = $sql->execute(array($_POST[$field[name]],$pluginData[$_GET['plugin']][uniq],$field[name]));
 			}
-			else
-			{
-				$insert[] 		= $pluginData[$_GET['plugin']][uniq];
+			else{
+				$insert[] 	= $pluginData[$_GET['plugin']][uniq];
 				$insert[] 	= $field[name];
-				$insert[] = $_POST[$field[name]];
-				$sql = $db->prepare("INSERT INTO `plugindata` (`plugindata_uniq`,`plugindata_field_name`,`plugindata_field_value`)
-						 VALUE (?,?,?)");
-				$s = $sql->execute($insert);
+				$insert[] 	= $_POST[$field[name]];
+				$sql 		= $db->prepare("INSERT INTO `plugindata` (`plugindata_uniq`,`plugindata_field_name`,`plugindata_field_value`) VALUE (?,?,?)");
+				$s 			= $sql->execute($insert);
 			}
 		}
 		if (!$s)

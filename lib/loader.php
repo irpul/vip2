@@ -1,11 +1,15 @@
-<?php 
-require_once 'config.php';
+<?php
+ini_set("display_errors", 1);
+error_reporting(E_ALL);
+require_once ('config1.php');
 require_once 'database/database.php';
 require_once 'class/session.php';
 require_once 'functions.php';
 require_once 'class/date.php';
 require_once 'class/pagination.php';
 require_once 'class/backup.php';
+
+
 
 //permission
 $permission = array(

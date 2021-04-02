@@ -113,10 +113,10 @@ class Session
 		switch ($this->user_type)
 		{
 			case "admin":
-				$this->user_id = $_SESSION['admin_id'];
+				$this->user_id = isset($_SESSION['admin_id']) ? $_SESSION['admin_id'] : '';
 				break;
 			case "user":
-				$this->user_id = $_SESSION['user_id'];
+				$this->user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '';
 				break;
 			default:
 				$this->user_id = null;

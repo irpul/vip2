@@ -1,5 +1,6 @@
 <?php
-require 'lib/loader.php';
+require_once('lib/loader.php');
+
 $loader->load_user ();
 $session->is_logged_in ( "login.php" );
 $category = $database->query("SELECT `title` FROM `category` WHERE id = $user[categoryid]")->fetch();

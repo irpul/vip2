@@ -2,122 +2,115 @@
 require_once 'lib/loader.php';
 $loader->load_user();
 $download = true;
-if(isset($_GET['gateway']))
-{
+if(isset($_GET['gateway'])){
 	$gateway = basename($_GET['gateway']);
 	if (strpos($gateway, "\0") !== FALSE)
 		die();
-	
 	
 	$sql = $database->prepare("SELECT plugin_type FROM plugin WHERE plugin_uniq = ?");
 	$sql->execute(array($gateway));
 	$sql = $sql->fetch();
 	$sql = $sql['plugin_type'];
-	if ($sql == 'payment')
-	{
+	if ($sql == 'payment'){
 		require_once('plugins/'.$gateway.'.php');
 		$sql = 'SELECT * FROM `plugindata` WHERE `plugindata_uniq` = ?';
 		$sql = $database->prepare($sql);
 		$sql->execute(array($gateway));
 		$plugindatas = $sql->fetchAll();
 		if ($plugindatas)
-			foreach($plugindatas as $plugindata)
-			{
+			foreach($plugindatas as $plugindata){
 				$data[$plugindata[plugindata_field_name]] = $plugindata[plugindata_field_value];
 			}
+			
 		$output = call_user_func('callback__'.$gateway,$data);
  		//-- پرداخت موفقیت آمیز بود
-		if($output[status] == 1)
-		{
-				$sql = "SELECT * FROM `payment` WHERE `payment_id` = ? LIMIT 1";
-				$sql = $database->prepare($sql);
-				$sql->execute(array($output[payment_id]));
-				$payment = $sql->fetch();
-				$sql = "UPDATE `payment` SET payment_status = ? , payment_res_num = ? , payment_ref_num = ? WHERE `payment_id` = ? LIMIT 1";
-				$sql = $database->prepare($sql);
-				$sql->execute(array(2,$output[res_num],$output[ref_num],$output[payment_id]));
-				
-				$sql = "SELECT * FROM category WHERE id=$payment[payment_categoryid]";
+		if($output[status] == 1){
+			$sql = "SELECT * FROM `payment` WHERE `payment_id` = ? LIMIT 1";
+			$sql = $database->prepare($sql);
+			$sql->execute(array($output[payment_id]));
+			$payment = $sql->fetch();
+			$sql = "UPDATE `payment` SET payment_status = ? , payment_res_num = ? , payment_ref_num = ? WHERE `payment_id` = ? LIMIT 1";
+			$sql = $database->prepare($sql);
+			$sql->execute(array(2,$output[res_num],$output[ref_num],$output[payment_id]));
+			
+			$sql = "SELECT * FROM category WHERE id=$payment[payment_categoryid]";
 
-				$category = $database->query($sql)->fetch();
-				
-				$sql = "SELECT * FROM `users` WHERE `username` = ? ";
+			$category = $database->query($sql)->fetch();
+			
+			$sql = "SELECT * FROM `users` WHERE `username` = ? ";
+			$sql = $database->prepare($sql);
+			$sql->execute(array($payment['payment_user']));
+			if($sql->rowCount()==0){
+				$sql = "INSERT INTO `users` (multi,`username`, `password`,`mobile`, `starttime`, `endtime`, `email`, `categoryid`, `active`) VALUES (:multi,:username, :password,:mobile, :starttime, :endtime, :email, :categoryid, 1)";
 				$sql = $database->prepare($sql);
-				$sql->execute(array($payment['payment_user']));
-				if($sql->rowCount()==0)
-				{
-					$sql = "INSERT INTO `users` (multi,`username`, `password`,`mobile`, `starttime`, `endtime`, `email`, `categoryid`, `active`)
-						 VALUES (:multi,:username, :password,:mobile, :starttime, :endtime, :email, :categoryid, 1)";
-					$sql = $database->prepare($sql);
-					
-					unset($insert);
-					$insert['username'] = $payment['payment_user'];
-					$insert['password'] = $payment['payment_password'];
-					$insert['starttime'] = time();
-					$insert['endtime'] = $insert['starttime']+$category['day']*24*60*60;
-					$insert['email'] = $payment['payment_email'];
-					$insert['categoryid'] = $category['id'];
-					$insert['multi'] = $category['multi'];
-					$insert['mobile'] = $payment['payment_mobile'];
-					$sql->execute($insert);
-					$new_id = $database->lastInsertId();
-				}
-				else
-				{
-					$userinfo = $sql->fetch();
-					$time = time();
-					if ( $userinfo['endtime'] > $time )
-						$userinfo['endtime'] = $userinfo['endtime'] + ($category['day'] * 24 * 60 * 60);
-					else
-						$userinfo['endtime'] = $time + ($category['day'] * 24 * 60 * 60);
-					$sql = "UPDATE `users` SET endtime = {$userinfo[endtime]},active=1,categoryid=$category[id],multi=$category[multi] WHERE id=$userinfo[id]";
-					$database->exec($sql);
-					
-					$new_id = $userinfo['id'];
-				}
-				if($payment['payment_ref'])
-				{
-					$ref = $database->prepare("SELECT * FROM `users` WHERE id = ?");
-					$ref->execute(array($payment['payment_ref']));
-					$ref = $ref->fetch();
-					if($ref)
-					{
-						$time = time();
-						if ( $ref['endtime'] > $time )
-							$ref['endtime'] = $ref['endtime'] + ($setting['ref_day'] * 24 * 60 * 60);
-						else
-							$ref['endtime'] = $time + ($setting['ref_day'] * 24 * 60 * 60);
-							
-						$database->exec("UPDATE `users` SET endtime = $ref[endtime] WHERE id=$ref[id]");
-							
-						$sql = $database->prepare("INSERT INTO `users_ref` (`userid`,`day` ,`from` ,`time`) VALUES (?,?,?,?)");
-						
-						$sql->execute(array($ref['id'],$setting['ref_day'],$new_id,$time));
-					}
-				}
 				
-				$page_title = 'مشخصات اکانت شما';
-				$error = '<img src="theme/img/icons/tick.png"/><font color="green" face="Tahoma" style="font-size: 12pt">';
-				$error = 'پرداخت با موفقیت انجام شد'.'</font>';
-				$resnum = $output[res_num];
-				$refnum = $output[ref_num];
-				$username = $payment['payment_user'];
-				$password = $payment['payment_password'];
-				$email = $payment['payment_email'];
-				$number = $payment['payment_mobile'];
-				email($email, 'register', array('username'=>$username,'password'=>$password,'email'=>$email,'time'=>getTime(time()),'resnum'=>$resnum,'refnum'=>$refnum,'category'=>$category['title']));
+				unset($insert);
+				$insert['username'] = $payment['payment_user'];
+				$insert['password'] = $payment['payment_password'];
+				$insert['starttime'] = time();
+				$insert['endtime'] = $insert['starttime']+$category['day']*24*60*60;
+				$insert['email'] = $payment['payment_email'];
+				$insert['categoryid'] = $category['id'];
+				$insert['multi'] = $category['multi'];
+				$insert['mobile'] = $payment['payment_mobile'];
+				$sql->execute($insert);
+				$new_id = $database->lastInsertId();
+			}
+			else{
+				$userinfo = $sql->fetch();
+				$time = time();
+				if ( $userinfo['endtime'] > $time )
+					$userinfo['endtime'] = $userinfo['endtime'] + ($category['day'] * 24 * 60 * 60);
+				else
+					$userinfo['endtime'] = $time + ($category['day'] * 24 * 60 * 60);
+				$sql = "UPDATE `users` SET endtime = {$userinfo[endtime]},active=1,categoryid=$category[id],multi=$category[multi] WHERE id=$userinfo[id]";
+				$database->exec($sql);
+				
+				$new_id = $userinfo['id'];
+			}
+			
+			if($payment['payment_ref']){
+				$ref = $database->prepare("SELECT * FROM `users` WHERE id = ?");
+				$ref->execute(array($payment['payment_ref']));
+				$ref = $ref->fetch();
+				if($ref)
+				{
+					$time = time();
+					if ( $ref['endtime'] > $time )
+						$ref['endtime'] = $ref['endtime'] + ($setting['ref_day'] * 24 * 60 * 60);
+					else
+						$ref['endtime'] = $time + ($setting['ref_day'] * 24 * 60 * 60);
+						
+					$database->exec("UPDATE `users` SET endtime = $ref[endtime] WHERE id=$ref[id]");
+						
+					$sql = $database->prepare("INSERT INTO `users_ref` (`userid`,`day` ,`from` ,`time`) VALUES (?,?,?,?)");
+					
+					$sql->execute(array($ref['id'],$setting['ref_day'],$new_id,$time));
+				}
+			}
+			
+			$page_title = 'مشخصات اکانت شما';
+			$error = '<img src="theme/img/icons/tick.png"/><font color="green" face="Tahoma" style="font-size: 12pt">';
+			$error = 'پرداخت با موفقیت انجام شد'.'</font>';
+			$resnum = $output[res_num];
+			$refnum = $output[ref_num];
+			$username = $payment['payment_user'];
+			$password = $payment['payment_password'];
+			$email = $payment['payment_email'];
+			$number = $payment['payment_mobile'];
+			email($email, 'register', array('username'=>$username,'password'=>$password,'email'=>$email,'time'=>getTime(time()),'resnum'=>$resnum,'refnum'=>$refnum,'category'=>$category['title']));
 		}
-		else
-		{
+		else{
 			$page_title = 'خطا در پرداخت';
 			$error = '<img src="theme/img/icons/exclamation-red.png"/> <font color="#FF0000" face="Tahoma" style="font-size: 12pt">';
-			if ($output[message])
+			if ($output[message]){
 				$error .= $output[message].'<br/>';
+			}
+				
 			$error .= '<font color="red">در بازگشت از بانک مشکلی به وجود آمد٬ لطفا دوباره سعی کنید.</font><br /><br /><a href="payment.php" class="button">بازگشت</a></font>';
 		}
 	}
-	else
-	{
+	else{
 		$error = '<img src="theme/img/icons/exclamation-red.png"/> <font color="#FF0000" face="Tahoma" style="font-size: 12pt">';
 		$page_title = 'خطا در پرداخت';
 		$error .= '<font color="red">چنین دروازه پرداختی وجود ندارد.</font><br /><br /><a href="payment.php" class="button">بازگشت</a></font>';
