@@ -160,7 +160,7 @@
 		}
 		$decrypted = base64_decode($data);
 		
-		$check = array('tran_id','order_id','amount','refcode','status');
+		$check = array('trans_id','order_id','amount','refcode','status');
 		foreach($check as $str){
 			str_replace($str,'',$decrypted,$count);
 			if($count > 0){
@@ -183,20 +183,20 @@
 			$decrypted 		= url_decrypt( $irpul_token );
 			if($decrypted['status']){
 				parse_str($decrypted['data'], $ir_output);
-				$tran_id 	= $ir_output['tran_id'];
+				$trans_id 	= $ir_output['trans_id'];
 				$order_id 	= $ir_output['order_id'];
 				$amount 	= $ir_output['amount'];
 				$refcode	= $ir_output['refcode'];
 				$status 	= $ir_output['status'];
 
 				/*$sql = $db->prepare("SELECT * FROM payment WHERE payment_rand = ?");
-				$sql->execute(array($tran_id));
+				$sql->execute(array($trans_id));
 				$sql = $sql->fetch();*/
 
 				//بررسی قبلا پرداخت نشده باشد
 				$sql 		= 'SELECT * FROM `payment` WHERE `payment_rand` = ? LIMIT 1;';
 				$sql = $db->prepare($sql);
-				$sql->execute(array($tran_id));
+				$sql->execute(array($trans_id));
 				$payment 	= $sql->fetch();
 
 				$amount		= round($payment[payment_amount]);
@@ -205,7 +205,7 @@
 					if($status == 'paid'){
 						$parameters = array(
 							'method'		=> 'verify',
-							'trans_id' 		=> $tran_id,
+							'trans_id' 		=> $trans_id,
 							'amount'	 	=> $amount,
 						);
 						error_log(print_r($parameters,true));
