@@ -58,7 +58,7 @@
 			'callback_url' 	=> $callBackUrl,
 			'address' 		=> '',
 			'description' 	=> $description,
-			'test_mode' 	=> true,
+			'test_mode' 	=> false,
 		);
 		//print_r($parameters);exit;
 		$result 	= post_data('https://irpul.ir/ws.php', $parameters, $token );
